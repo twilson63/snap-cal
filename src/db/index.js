@@ -79,6 +79,12 @@ function runMigrations() {
         GROUP BY date(timestamp)
         ORDER BY date DESC;
       `)
+    },
+    {
+      name: '003_add_search_index',
+      up: () => db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_entries_description ON entries(description);
+      `)
     }
   ]
 
@@ -160,6 +166,27 @@ const statements = {
     SELECT * FROM daily_summary 
     ORDER BY date DESC 
     LIMIT ?
+  `),
+
+  // Search
+  searchEntries: db.prepare(`
+    SELECT * FROM entries 
+    WHERE description LIKE ? COLLATE NOCASE
+    ORDER BY timestamp DESC 
+    LIMIT ?
+  `),
+
+  // Export - get all entries
+  getAllEntriesForExport: db.prepare(`
+    SELECT * FROM entries 
+    ORDER BY timestamp DESC
+  `),
+
+  // Get entries in date range
+  getEntriesInRange: db.prepare(`
+    SELECT * FROM entries 
+    WHERE date(timestamp) BETWEEN date(?) AND date(?)
+    ORDER BY timestamp DESC
   `)
 }
 
@@ -261,6 +288,22 @@ export const entryRepository = {
 
   getRecentDays(days = 7) {
     return statements.getRecentDays.all(days)
+  },
+
+  search(query, limit = 20) {
+    const searchPattern = `%${query}%`
+    const rows = statements.searchEntries.all(searchPattern, limit)
+    return rows.map(rowToJSON)
+  },
+
+  exportAll() {
+    const rows = statements.getAllEntriesForExport.all()
+    return rows.map(rowToJSON)
+  },
+
+  findByDateRange(startDate, endDate) {
+    const rows = statements.getEntriesInRange.all(startDate, endDate)
+    return rows.map(rowToJSON)
   }
 }
 

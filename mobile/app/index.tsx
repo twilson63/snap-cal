@@ -4,12 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Link } from 'expo-router'
 import { useToday } from '@/hooks/useApi'
 import { useGoals } from '@/hooks/useGoals'
+import { usePresets } from '@/hooks/usePresets'
 import { ProgressRing } from '@/components/StatCard'
 import { EntryCard } from '@/components/EntryCard'
 
 export default function HomeScreen() {
   const { data, loading, error, refresh } = useToday()
   const { goals } = useGoals()
+  const { presets } = usePresets()
 
   const today = data?.date ?? new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -96,6 +98,40 @@ export default function HomeScreen() {
             />
           </View>
         </View>
+
+        {/* Quick Add from Presets */}
+        {presets.length > 0 && (
+          <View style={styles.presetsSection}>
+            <View style={styles.presetsHeader}>
+              <Text style={styles.sectionTitle}>Quick Add</Text>
+              <Link href="/presets" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.manageLink}>Manage</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.presetsList}
+            >
+              {presets.slice(0, 5).map((preset) => (
+                <Link key={preset.id} href={`/add?preset=${preset.id}`} asChild>
+                  <TouchableOpacity style={styles.presetChip}>
+                    <Text style={styles.presetEmoji}>🍽️</Text>
+                    <Text style={styles.presetName} numberOfLines={1}>{preset.name}</Text>
+                    <Text style={styles.presetCals}>{preset.calories} cal</Text>
+                  </TouchableOpacity>
+                </Link>
+              ))}
+              <Link href="/presets" asChild>
+                <TouchableOpacity style={[styles.presetChip, styles.addPresetChip]}>
+                  <Text style={styles.addPresetText}>+ Add</Text>
+                </TouchableOpacity>
+              </Link>
+            </ScrollView>
+          </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -323,6 +359,60 @@ const styles = StyleSheet.create({
   quickStatText: {
     color: '#1e40af',
     fontSize: 14,
+  },
+  presetsSection: {
+    marginBottom: 16,
+  },
+  presetsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  manageLink: {
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
+  },
+  presetsList: {
+    paddingVertical: 4,
+    gap: 8,
+  },
+  presetChip: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    minWidth: 100,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    marginRight: 8,
+  },
+  presetEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  presetName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  presetCals: {
+    fontSize: 11,
+    color: '#6b7280',
+  },
+  addPresetChip: {
+    minWidth: 70,
+    justifyContent: 'center',
+  },
+  addPresetText: {
+    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '500',
   },
   fab: {
     position: 'absolute',

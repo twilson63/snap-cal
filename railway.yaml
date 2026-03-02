@@ -1,0 +1,12 @@
+# Railway configuration for monorepo
+# Each service needs its own configuration
+
+[[services]]
+name = "api"
+source = "."
+dockerfilePath = "Dockerfile"
+
+[[services]]
+name = "frontend"
+source = "web"
+dockerfilePath = "Dockerfile"

@@ -193,6 +193,75 @@ describe('FoodLog API', () => {
       assert.strictEqual(res.status, 400)
     })
   })
+
+  describe('Search API', () => {
+    it('GET /entries/search returns matching entries', async () => {
+      // First create a test entry to search for
+      const createRes = await fetch(`${baseUrl}/entries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: 'Special test sandwich with cheese',
+          calories: 450,
+          protein: 25
+        })
+      })
+      assert.strictEqual(createRes.status, 201)
+      const createData = await createRes.json()
+      const testId = createData.entry.id
+
+      try {
+        // Search for it
+        const searchRes = await fetch(`${baseUrl}/entries/search?q=sandwich`)
+        assert.strictEqual(searchRes.status, 200)
+        
+        const searchData = await searchRes.json()
+        assert.ok(Array.isArray(searchData.entries))
+        assert.ok(searchData.entries.length >= 1)
+        assert.strictEqual(searchData.query, 'sandwich')
+        assert.ok(searchData.entries.some(e => e.description.includes('sandwich')))
+      } finally {
+        // Cleanup
+        await fetch(`${baseUrl}/entries/${testId}`, { method: 'DELETE' })
+      }
+    })
+
+    it('GET /entries/search without query returns 400', async () => {
+      const res = await fetch(`${baseUrl}/entries/search`)
+      assert.strictEqual(res.status, 400)
+    })
+  })
+
+  describe('Export API', () => {
+    it('GET /entries/export returns JSON by default', async () => {
+      const res = await fetch(`${baseUrl}/entries/export`)
+      assert.strictEqual(res.status, 200)
+      
+      const data = await res.json()
+      assert.ok(data.exportedAt)
+      assert.ok(Array.isArray(data.entries))
+    })
+
+    it('GET /entries/export?format=csv returns CSV', async () => {
+      const res = await fetch(`${baseUrl}/entries/export?format=csv`)
+      assert.strictEqual(res.status, 200)
+      assert.ok(res.headers.get('content-type').includes('text/csv'))
+      
+      const text = await res.text()
+      assert.ok(text.includes('id,description,calories'))
+    })
+
+    it('GET /entries/export with date range filters entries', async () => {
+      const today = new Date().toISOString().split('T')[0]
+      const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      
+      const res = await fetch(`${baseUrl}/entries/export?start=${lastWeek}&end=${today}`)
+      assert.strictEqual(res.status, 200)
+      
+      const data = await res.json()
+      assert.ok(Array.isArray(data.entries))
+    })
+  })
 })
 
 console.log(`Running tests against ${baseUrl}`)

@@ -88,6 +88,71 @@ app.get('/stats/recent', (c) => {
   })
 })
 
+// GET /entries/search - Search entries by description
+app.get('/search', (c) => {
+  const { q, limit = '20' } = c.req.query()
+  
+  if (!q || q.trim().length === 0) {
+    return c.json({ error: 'Search query required' }, 400)
+  }
+  
+  const limitNum = Math.min(parseInt(limit) || 20, 100)
+  const entries = entryRepository.search(q.trim(), limitNum)
+  
+  return c.json({
+    query: q,
+    count: entries.length,
+    entries
+  })
+})
+
+// GET /entries/export - Export all entries
+app.get('/export', (c) => {
+  const { format = 'json', start, end } = c.req.query()
+  
+  let entries
+  if (start && end) {
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      return c.json({ error: 'Invalid date format. Use YYYY-MM-DD' }, 400)
+    }
+    entries = entryRepository.findByDateRange(start, end)
+  } else {
+    entries = entryRepository.exportAll()
+  }
+  
+  if (format === 'csv') {
+    // Generate CSV
+    const headers = ['id', 'description', 'calories', 'protein', 'carbs', 'fat', 'timestamp', 'estimated']
+    const csvRows = [headers.join(',')]
+    
+    for (const entry of entries) {
+      csvRows.push([
+        entry.id,
+        `"${(entry.description || '').replace(/"/g, '""')}"`,
+        entry.calories || '',
+        entry.protein || '',
+        entry.carbs || '',
+        entry.fat || '',
+        entry.timestamp,
+        entry.estimated ? 1 : 0
+      ].join(','))
+    }
+    
+    return c.text(csvRows.join('\n'), 200, {
+      'Content-Type': 'text/csv',
+      'Content-Disposition': 'attachment; filename="foodlog-export.csv"'
+    })
+  }
+  
+  // Default to JSON
+  return c.json({
+    exportedAt: new Date().toISOString(),
+    count: entries.length,
+    entries
+  })
+})
+
 // GET /entries/:id - Get single entry
 app.get('/:id', (c) => {
   const id = parseInt(c.req.param('id'))

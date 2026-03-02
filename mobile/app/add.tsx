@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image, Dimensions } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { BarCodeScanner } from 'expo-barcode-scanner'
 import { api } from '@/services/api'
+import { usePresets } from '@/hooks/usePresets'
 import type { NutritionEstimate } from '@/types'
 
 type InputMode = 'photo' | 'barcode' | 'manual'
 
 export default function AddEntryScreen() {
+  const params = useLocalSearchParams<{ preset?: string }>()
+  const { presets } = usePresets()
+  
   const [mode, setMode] = useState<InputMode>('photo')
   const [description, setDescription] = useState('')
   const [calories, setCalories] = useState('')
@@ -25,6 +29,8 @@ export default function AddEntryScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [scanned, setScanned] = useState(false)
   const [barcodeResult, setBarcodeResult] = useState<any>(null)
+  const [saveAsPreset, setSaveAsPreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
 
   // Request camera permission for barcode scanner
   useEffect(() => {
@@ -34,6 +40,21 @@ export default function AddEntryScreen() {
     }
     getBarCodeScannerPermissions()
   }, [])
+
+  // Load preset if provided in URL params
+  useEffect(() => {
+    if (params.preset && presets.length > 0) {
+      const preset = presets.find(p => p.id === params.preset)
+      if (preset) {
+        setDescription(preset.description)
+        setCalories(String(preset.calories))
+        setProtein(String(preset.protein || ''))
+        setCarbs(String(preset.carbs || ''))
+        setFat(String(preset.fat || ''))
+        setMode('manual')
+      }
+    }
+  }, [params.preset, presets])
 
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     if (scanned) return
@@ -131,6 +152,35 @@ export default function AddEntryScreen() {
       Alert.alert('Error', 'Failed to create entry')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const { addPreset } = usePresets()
+
+  const handleSaveAsPreset = async () => {
+    if (!description.trim()) {
+      Alert.alert('Missing info', 'Please enter a description for the preset')
+      return
+    }
+    if (!calories || parseInt(calories, 10) <= 0) {
+      Alert.alert('Missing info', 'Please enter calories for the preset')
+      return
+    }
+
+    try {
+      await addPreset({
+        name: presetName.trim() || description.trim().slice(0, 30),
+        description: description.trim(),
+        calories: parseInt(calories, 10),
+        protein: parseFloat(protein) || 0,
+        carbs: parseFloat(carbs) || 0,
+        fat: parseFloat(fat) || 0,
+      })
+      Alert.alert('Saved', 'Preset saved successfully!')
+      setSaveAsPreset(false)
+      setPresetName('')
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save preset')
     }
   }
 

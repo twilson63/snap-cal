@@ -2,7 +2,7 @@ import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native'
 import { usePathname, Link } from 'expo-router'
-import { Home as HomeIcon, PlusCircle, Clock, Settings } from 'lucide-react-native'
+import { Home as HomeIcon, PlusCircle, Clock, Settings, Search } from 'lucide-react-native'
 
 export default function RootLayout() {
   return (
@@ -26,7 +26,13 @@ export default function RootLayout() {
           name="index"
           options={{
             title: 'FoodLog',
-            headerRight: () => null,
+            headerRight: () => (
+              <Link href="/search" asChild>
+                <TouchableOpacity style={{ marginRight: 16 }}>
+                  <Search size={24} color="#fff" />
+                </TouchableOpacity>
+              </Link>
+            ),
           }}
         />
         <Stack.Screen
@@ -40,6 +46,25 @@ export default function RootLayout() {
           name="history"
           options={{
             title: 'History',
+            headerRight: () => (
+              <Link href="/search" asChild>
+                <TouchableOpacity style={{ marginRight: 16 }}>
+                  <Search size={24} color="#fff" />
+                </TouchableOpacity>
+              </Link>
+            ),
+          }}
+        />
+        <Stack.Screen
+          name="search"
+          options={{
+            title: 'Search',
+          }}
+        />
+        <Stack.Screen
+          name="presets"
+          options={{
+            title: 'Food Presets',
           }}
         />
         <Stack.Screen

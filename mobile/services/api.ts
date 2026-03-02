@@ -140,6 +140,34 @@ class ApiService {
   }> {
     return this.request(`/barcode/lookup/${barcode}`)
   }
+
+  /**
+   * Search entries by description
+   */
+  async searchEntries(query: string, limit = 20): Promise<{
+    query: string
+    count: number
+    entries: FoodEntry[]
+  }> {
+    return this.request(`/entries/search?q=${encodeURIComponent(query)}&limit=${limit}`)
+  }
+
+  /**
+   * Export entries as JSON or CSV
+   */
+  async exportEntries(format: 'json' | 'csv' = 'json', start?: string, end?: string): Promise<string | object> {
+    let url = `/entries/export?format=${format}`
+    if (start && end) {
+      url += `&start=${start}&end=${end}`
+    }
+    
+    if (format === 'csv') {
+      const response = await fetch(`${this.baseUrl}${url}`)
+      return response.text()
+    }
+    
+    return this.request(url)
+  }
 }
 
 export const api = new ApiService(API_BASE)

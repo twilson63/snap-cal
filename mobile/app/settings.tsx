@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import * as FileSystem from 'expo-file-system'
+import * as Sharing from 'expo-sharing'
 import { api } from '@/services/api'
 import { useGoals } from '@/hooks/useGoals'
 
@@ -67,6 +69,64 @@ export default function SettingsScreen() {
       </View>
     </View>
   )
+
+  const resetGoalsToDefaults = async () => {
+    await resetGoals()
+    Alert.alert('Goals Reset', 'Your daily goals have been reset to defaults.')
+  }
+
+  const exportJSON = async () => {
+    try {
+      Alert.alert('Exporting...', 'Fetching your data...')
+      const data = await api.exportEntries('json') as any
+      
+      const jsonString = JSON.stringify(data, null, 2)
+      const fileName = `foodlog-export-${new Date().toISOString().split('T')[0]}.json`
+      const filePath = `${FileSystem.documentDirectory}${fileName}`
+      
+      await FileSystem.writeAsStringAsync(filePath, jsonString, {
+        encoding: FileSystem.EncodingType.UTF8
+      })
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'application/json',
+          dialogTitle: 'Export FoodLog Data'
+        })
+      } else {
+        Alert.alert('Export Complete', `Data exported to ${fileName}`)
+      }
+    } catch (err) {
+      console.error('Export failed:', err)
+      Alert.alert('Export Failed', 'Could not export data. Please try again.')
+    }
+  }
+
+  const exportCSV = async () => {
+    try {
+      Alert.alert('Exporting...', 'Fetching your data...')
+      const csvString = await api.exportEntries('csv') as string
+      
+      const fileName = `foodlog-export-${new Date().toISOString().split('T')[0]}.csv`
+      const filePath = `${FileSystem.documentDirectory}${fileName}`
+      
+      await FileSystem.writeAsStringAsync(filePath, csvString, {
+        encoding: FileSystem.EncodingType.UTF8
+      })
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Export FoodLog Data'
+        })
+      } else {
+        Alert.alert('Export Complete', `Data exported to ${fileName}`)
+      }
+    } catch (err) {
+      console.error('Export failed:', err)
+      Alert.alert('Export Failed', 'Could not export data. Please try again.')
+    }
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
@@ -207,6 +267,32 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </View>
             )}
+          </View>
+        </View>
+
+        {/* Export Data */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Export Data</Text>
+          <View style={styles.exportCard}>
+            <Text style={styles.exportDescription}>
+              Download your food log data as JSON or CSV for backup or analysis.
+            </Text>
+            <View style={styles.exportButtons}>
+              <TouchableOpacity
+                style={styles.exportButton}
+                onPress={exportJSON}
+              >
+                <Text style={styles.exportButtonIcon}>📋</Text>
+                <Text style={styles.exportButtonText}>Export as JSON</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.exportButton, styles.exportButtonSecondary]}
+                onPress={exportCSV}
+              >
+                <Text style={styles.exportButtonIcon}>📊</Text>
+                <Text style={styles.exportButtonText}>Export as CSV</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -483,5 +569,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 20,
+  },
+  exportCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  exportDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  exportButtons: {
+    gap: 12,
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563eb',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  exportButtonSecondary: {
+    backgroundColor: '#6b7280',
+  },
+  exportButtonIcon: {
+    fontSize: 18,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 })
