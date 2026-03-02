@@ -43,6 +43,8 @@
 - [x] Adaptive icon (adaptive-icon.png)
 - [x] Favicon (favicon.png)
 - [x] Web-based screenshots
+- [x] Privacy Policy URL (https://foodlog-app.surge.sh/privacy)
+- [x] Terms of Service URL (https://foodlog-app.surge.sh/terms)
 
 ### Documentation
 - [x] README.md
