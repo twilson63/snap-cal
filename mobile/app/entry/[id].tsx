@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, Image } from 'react-native'
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, Image, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { api } from '@/services/api'
@@ -152,6 +152,13 @@ export default function EntryDetailScreen() {
 
         {/* Actions */}
         <View style={styles.actions}>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => router.push(`/edit/${id}` as any)}
+          >
+            <Text style={styles.editButtonText}>Edit Entry</Text>
+          </TouchableOpacity>
+          
           <Text style={styles.deleteButton} onPress={handleDelete}>
             {deleting ? 'Deleting...' : 'Delete Entry'}
           </Text>
@@ -279,6 +286,20 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: 'center',
     marginTop: 24,
+    gap: 12,
+  },
+  editButton: {
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   deleteButton: {
     color: '#dc2626',
