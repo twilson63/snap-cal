@@ -42,7 +42,14 @@
 - [x] Splash screen (splash.png)
 - [x] Adaptive icon (adaptive-icon.png)
 - [x] Favicon (favicon.png)
-- [x] Web-based screenshots
+- [x] Screenshots (captured from live web app)
+  - 01-dashboard.png (empty dashboard)
+  - 02-dashboard-with-data.png (with food entries)
+  - 03-add-entry.png (add food options)
+  - 04-history.png (7-day history view)
+  - 05-stats.png (statistics screen)
+  - 06-settings.png (settings screen)
+- [x] Feature Graphic for Google Play (feature-graphic.png - 1024x500)
 - [x] Privacy Policy URL (https://foodlog-app.surge.sh/privacy)
 - [x] Terms of Service URL (https://foodlog-app.surge.sh/terms)
 
@@ -110,7 +117,7 @@
 | Category | ✅ | Health & Fitness |
 | Age Rating | ✅ | 4+ |
 | Privacy Policy URL | ✅ | Required - have copy |
-| Screenshots | ❌ | Need device screenshots |
+| Screenshots | ✅ | Have web screenshots (device preferred) |
 | App Icon | ✅ | 1024x1024 |
 | Support URL | ✅ | GitHub issues |
 
@@ -123,9 +130,9 @@
 | Category | ✅ | Health & Fitness |
 | Age Rating | ✅ | Everyone |
 | Privacy Policy URL | ✅ | Required - have copy |
-| Screenshots | ❌ | Need device screenshots |
+| Screenshots | ✅ | Have web screenshots (device preferred) |
 | App Icon | ✅ | 512x512+ |
-| Feature Graphic | ❌ | 1024x500 (optional) |
+| Feature Graphic | ✅ | 1024x500 created |
 
 ---
 
