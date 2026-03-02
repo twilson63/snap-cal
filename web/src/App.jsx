@@ -12,21 +12,22 @@ import { getSession } from './lib/storage.js';
 
 const queryClient = new QueryClient();
 
-function App() {
+// Redirect component that works inside Router context
+function RootRedirect() {
   const sessionId = getSession();
-  const currentPath = window.location.pathname;
-  
-  // If at root and have session, redirect to session URL
-  if (currentPath === '/' && sessionId) {
+  if (sessionId) {
     return <Navigate to={`/s/${sessionId}`} replace />;
   }
+  return <Welcome />;
+}
 
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
           {/* Welcome/new session page */}
-          <Route path="/" element={<Welcome />} />
+          <Route path="/" element={<RootRedirect />} />
           
           {/* Session-scoped routes */}
           <Route path="/s/:sessionId" element={<Layout />}>
