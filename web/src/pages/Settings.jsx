@@ -1,313 +1,142 @@
-import { useState, useEffect } from 'react'
-import { Moon, Sun, Server, CheckCircle, XCircle, Loader2, Edit2, Save, X, RefreshCw } from 'lucide-react'
-import { api } from '../api'
-import { useGoals } from '../hooks/useGoals'
-
-// Setting row component
-function SettingRow({ label, description, children }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-4">
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 dark:text-gray-100">{label}</div>
-        {description && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">{description}</div>
-        )}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-// Toggle switch component
-function Toggle({ enabled, onChange }) {
-  return (
-    <button
-      onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-        enabled ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-1'
-        }`}
-      />
-    </button>
-  )
-}
-
-// Editable goal input
-function GoalInput({ label, value, unit, onChange }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <span className="text-gray-700 dark:text-gray-300">{label}</span>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-20 text-right rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-gray-900 dark:text-gray-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-        />
-        <span className="text-gray-500 dark:text-gray-400 text-sm w-8">{unit}</span>
-      </div>
-    </div>
-  )
-}
+import { useState, useEffect } from 'react';
 
 export default function Settings() {
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode')
-    if (saved !== null) return JSON.parse(saved)
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
-  })
+  const [apiKey, setApiKey] = useState('');
+  const [goals, setGoals] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 });
+  const [saved, setSaved] = useState(false);
 
-  const [apiStatus, setApiStatus] = useState('checking') // checking, ok, error
-  const [apiDetails, setApiDetails] = useState(null)
-  
-  const { goals, setGoals, resetGoals, defaults } = useGoals()
-  const [editingGoals, setEditingGoals] = useState(false)
-  const [tempGoals, setTempGoals] = useState(goals)
-
-  // Dark mode effect
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    // Load current settings
+    const savedKey = localStorage.getItem('foodlog_openrouter_key') || '';
+    const savedGoals = JSON.parse(localStorage.getItem('foodlog_goals') || '{}');
+    setApiKey(savedKey);
+    setGoals({ ...goals, ...savedGoals });
+  }, []);
+
+  const handleSave = () => {
+    localStorage.setItem('foodlog_openrouter_key', apiKey);
+    localStorage.setItem('foodlog_goals', JSON.stringify(goals));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleClearData = () => {
+    if (confirm('Delete all food entries? This cannot be undone.')) {
+      // Clear IndexedDB
+      indexedDB.deleteDatabase('foodlog');
+      // Clear localStorage
+      localStorage.removeItem('foodlog_goals');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
     }
-    localStorage.setItem('darkMode', JSON.stringify(darkMode))
-  }, [darkMode])
-
-  // Check API health
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const result = await api.health()
-        setApiStatus('ok')
-        setApiDetails(result)
-      } catch (err) {
-        setApiStatus('error')
-        setApiDetails(null)
-      }
-    }
-    checkHealth()
-  }, [])
-
-  const startEditingGoals = () => {
-    setTempGoals({ ...goals })
-    setEditingGoals(true)
-  }
-
-  const cancelEditingGoals = () => {
-    setTempGoals({ ...goals })
-    setEditingGoals(false)
-  }
-
-  const saveGoals = () => {
-    setGoals({
-      calories: parseInt(tempGoals.calories) || defaults.calories,
-      protein: parseInt(tempGoals.protein) || defaults.protein,
-      carbs: parseInt(tempGoals.carbs) || defaults.carbs,
-      fat: parseInt(tempGoals.fat) || defaults.fat,
-    })
-    setEditingGoals(false)
-  }
-
-  const handleResetGoals = () => {
-    if (confirm('Reset all goals to defaults?')) {
-      resetGoals()
-      setTempGoals(defaults)
-    }
-  }
+  };
 
   return (
-    <div className="max-w-lg mx-auto">
-      <header className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400">Customize your experience</p>
-      </header>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+      </div>
 
-      <div className="px-4 space-y-4">
-        {/* Appearance Section */}
-        <section className="card">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Appearance</h2>
+      {/* Goals Section */}
+      <div className="card p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Daily Goals</h2>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Calories</label>
+            <input
+              type="number"
+              value={goals.calories}
+              onChange={(e) => setGoals({ ...goals, calories: parseInt(e.target.value) || 0 })}
+              className="input w-full"
+            />
           </div>
-          <div className="px-4">
-            <SettingRow
-              label="Dark Mode"
-              description="Use dark theme"
-            >
-              <Toggle enabled={darkMode} onChange={setDarkMode} />
-            </SettingRow>
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Protein (g)</label>
+            <input
+              type="number"
+              value={goals.protein}
+              onChange={(e) => setGoals({ ...goals, protein: parseInt(e.target.value) || 0 })}
+              className="input w-full"
+            />
           </div>
-        </section>
-
-        {/* Goals Section */}
-        <section className="card">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Daily Goals</h2>
-            {!editingGoals ? (
-              <button
-                onClick={startEditingGoals}
-                className="flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleResetGoals}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Reset
-                </button>
-              </div>
-            )}
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Carbs (g)</label>
+            <input
+              type="number"
+              value={goals.carbs}
+              onChange={(e) => setGoals({ ...goals, carbs: parseInt(e.target.value) || 0 })}
+              className="input w-full"
+            />
           </div>
-          
-          {editingGoals ? (
-            <div className="px-4 py-2">
-              <GoalInput
-                label="Calories"
-                value={tempGoals.calories}
-                unit="kcal"
-                onChange={(v) => setTempGoals({ ...tempGoals, calories: v })}
-              />
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <GoalInput
-                label="Protein"
-                value={tempGoals.protein}
-                unit="g"
-                onChange={(v) => setTempGoals({ ...tempGoals, protein: v })}
-              />
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <GoalInput
-                label="Carbs"
-                value={tempGoals.carbs}
-                unit="g"
-                onChange={(v) => setTempGoals({ ...tempGoals, carbs: v })}
-              />
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <GoalInput
-                label="Fat"
-                value={tempGoals.fat}
-                unit="g"
-                onChange={(v) => setTempGoals({ ...tempGoals, fat: v })}
-              />
-              <div className="flex gap-3 pt-4 pb-2">
-                <button
-                  onClick={cancelEditingGoals}
-                  className="flex-1 btn-secondary py-2"
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Cancel
-                </button>
-                <button
-                  onClick={saveGoals}
-                  className="flex-1 btn-primary py-2"
-                >
-                  <Save className="w-4 h-4 mr-1" />
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="px-4">
-              <SettingRow
-                label="Calorie Goal"
-                description="Target calories per day"
-              >
-                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{goals.calories}</span>
-              </SettingRow>
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <SettingRow
-                label="Protein Goal"
-                description="Target protein in grams"
-              >
-                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{goals.protein}g</span>
-              </SettingRow>
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <SettingRow
-                label="Carbs Goal"
-                description="Target carbs in grams"
-              >
-                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{goals.carbs}g</span>
-              </SettingRow>
-              <div className="border-t border-gray-100 dark:border-gray-700" />
-              <SettingRow
-                label="Fat Goal"
-                description="Target fat in grams"
-              >
-                <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{goals.fat}g</span>
-              </SettingRow>
-            </div>
-          )}
-        </section>
-
-        {/* API Status Section */}
-        <section className="card">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">API Status</h2>
+          <div>
+            <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Fat (g)</label>
+            <input
+              type="number"
+              value={goals.fat}
+              onChange={(e) => setGoals({ ...goals, fat: parseInt(e.target.value) || 0 })}
+              className="input w-full"
+            />
           </div>
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-3">
-              {apiStatus === 'checking' && (
-                <>
-                  <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-                  <span className="text-gray-500 dark:text-gray-400">Checking connection...</span>
-                </>
-              )}
-              {apiStatus === 'ok' && (
-                <>
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <div>
-                    <div className="text-green-600 dark:text-green-400 font-medium">Connected</div>
-                    {apiDetails && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Database: {apiDetails.database} • Vision: {apiDetails.vision?.configured ? 'Active' : 'Inactive'}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-              {apiStatus === 'error' && (
-                <>
-                  <XCircle className="w-5 h-5 text-red-500" />
-                  <div>
-                    <div className="text-red-600 dark:text-red-400 font-medium">Not Connected</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Make sure the API is running on port 3001
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* About Section */}
-        <section className="card">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-gray-100">About</h2>
-          </div>
-          <div className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
-            <p className="mb-2">
-              <strong className="text-gray-900 dark:text-gray-100">FoodLog</strong> — Track your meals with AI-powered nutrition analysis
-            </p>
-            <p>
-              Take a photo of your food and let the AI estimate calories, protein, carbs, and fat. View your history and track progress over time.
-            </p>
-          </div>
-        </section>
-
-        {/* Version */}
-        <div className="text-center text-xs text-gray-400 py-4">
-          FoodLog v1.0.0 • Built with ❤️
         </div>
       </div>
+
+      {/* API Key Section */}
+      <div className="card p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">AI Vision</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Add an OpenRouter API key to get real calorie estimates from food photos.
+          Without a key, the app will use estimates.
+        </p>
+        
+        <div>
+          <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">OpenRouter API Key</label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="sk-or-v1-..."
+            className="input w-full"
+          />
+        </div>
+        
+        <a 
+          href="https://openrouter.ai/keys" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-primary-600 text-sm hover:underline"
+        >
+          Get an API key at openrouter.ai →
+        </a>
+      </div>
+
+      {/* Save Button */}
+      <button
+        onClick={handleSave}
+        className="w-full btn-primary py-3 text-lg"
+      >
+        {saved ? 'Saved!' : 'Save Settings'}
+      </button>
+
+      {/* Clear Data */}
+      <div className="card p-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-2">Clear Data</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Delete all food entries from this device.
+        </p>
+        <button
+          onClick={handleClearData}
+          className="btn-secondary text-red-600"
+        >
+          Clear All Entries
+        </button>
+      </div>
+
+      {/* About */}
+      <div className="text-center text-sm text-gray-400 dark:text-gray-500">
+        <p>FoodLog v1.0</p>
+        <p className="mt-1">Data stored locally in your browser</p>
+      </div>
     </div>
-  )
+  );
 }

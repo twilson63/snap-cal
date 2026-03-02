@@ -1,281 +1,188 @@
-import { useQuery } from '@tanstack/react-query'
-import { api, keys } from '../api'
-import { useGoals } from '../hooks/useGoals'
-import { Utensils, Flame, Droplets, Wheat, Clock, Trash2 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
-
-// Circular progress component
-function ProgressRing({ value, max, size = 120, strokeWidth = 10, color = 'primary' }) {
-  const radius = (size - strokeWidth) / 2
-  const circumference = radius * 2 * Math.PI
-  const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  const strokeDashoffset = circumference - (percentage / 100) * circumference
-
-  const colorClasses = {
-    primary: 'stroke-primary-500',
-    accent: 'stroke-accent-500',
-    blue: 'stroke-blue-500',
-    purple: 'stroke-purple-500',
-  }
-
-  return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          className="stroke-gray-200 dark:stroke-gray-700"
-          fill="none"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          strokeWidth={strokeWidth}
-          className={colorClasses[color]}
-          fill="none"
-          strokeLinecap="round"
-          style={{
-            strokeDasharray: circumference,
-            strokeDashoffset,
-            transition: 'stroke-dashoffset 0.5s ease-out',
-          }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">/ {max}</span>
-      </div>
-    </div>
-  )
-}
-
-// Macro breakdown component
-function MacroCard({ label, value, max, unit, color, icon: Icon }) {
-  const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  
-  const bgColors = {
-    protein: 'bg-blue-100 dark:bg-blue-900/30',
-    carbs: 'bg-amber-100 dark:bg-amber-900/30',
-    fat: 'bg-rose-100 dark:bg-rose-900/30',
-  }
-  
-  const textColors = {
-    protein: 'text-blue-600 dark:text-blue-400',
-    carbs: 'text-amber-600 dark:text-amber-400',
-    fat: 'text-rose-600 dark:text-rose-400',
-  }
-
-  return (
-    <div className={`card p-4 flex items-center gap-3 ${bgColors[color]}`}>
-      <div className={`p-2 rounded-xl ${textColors[color]}`}>
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline justify-between mb-1">
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{label}</span>
-          <span className={`text-sm font-semibold ${textColors[color]}`}>
-            {value}{unit} / {max}{unit}
-          </span>
-        </div>
-        <div className="h-2 bg-white/50 dark:bg-gray-700 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              color === 'protein' ? 'bg-blue-500' : color === 'carbs' ? 'bg-amber-500' : 'bg-rose-500'
-            }`}
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Entry card component
-function EntryCard({ entry, onDelete }) {
-  const time = entry.timestamp 
-    ? format(parseISO(entry.timestamp), 'h:mm a')
-    : format(new Date(), 'h:mm a')
-
-  return (
-    <div className="card-hover p-4 slide-up">
-      <div className="flex gap-3">
-        {entry.photoUrl && (
-          <img
-            src={entry.photoUrl}
-            alt={entry.description || 'Food'}
-            className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-          />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
-                {entry.description || 'Unknown food'}
-              </h3>
-              <div className="flex items-center gap-1 mt-0.5 text-gray-500 dark:text-gray-400">
-                <Clock className="w-3 h-3" />
-                <span className="text-xs">{time}</span>
-                {entry.estimated && (
-                  <span className="text-xs bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 px-1.5 py-0.5 rounded-full ml-1">
-                    AI
-                  </span>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => onDelete(entry.id)}
-              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-3 mt-2 text-sm">
-            <span className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
-              <Flame className="w-4 h-4 text-accent-500" />
-              <span className="font-medium">{entry.calories || 0}</span>
-            </span>
-            <span className="text-gray-400 dark:text-gray-500">
-              P: {entry.protein || 0}g
-            </span>
-            <span className="text-gray-400 dark:text-gray-500">
-              C: {entry.carbs || 0}g
-            </span>
-            <span className="text-gray-400 dark:text-gray-500">
-              F: {entry.fat || 0}g
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, keys } from '../api.js';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { data, isLoading, error, refetch } = useQuery({
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [goals, setGoals] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 });
+  
+  // Load goals from storage
+  useEffect(() => {
+    const savedGoals = localStorage.getItem('foodlog_goals');
+    if (savedGoals) {
+      setGoals(JSON.parse(savedGoals));
+    }
+  }, []);
+
+  // Fetch today's entries
+  const { data, isLoading, error } = useQuery({
     queryKey: keys.today,
     queryFn: api.getToday,
     refetchOnWindowFocus: false,
-  })
+  });
 
-  const { goals } = useGoals()
+  const entries = data?.entries || [];
+  const totals = data?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
+  // Calculate percentages
+  const caloriePercent = Math.min(100, Math.round((totals.calories / goals.calories) * 100));
+  const proteinPercent = Math.min(100, Math.round((totals.protein / goals.protein) * 100));
+  const carbsPercent = Math.min(100, Math.round((totals.carbs / goals.carbs) * 100));
+  const fatPercent = Math.min(100, Math.round((totals.fat / goals.fat) * 100));
+
+  // Delete entry
   const handleDelete = async (id) => {
-    if (!confirm('Delete this entry?')) return
-    try {
-      await api.deleteEntry(id)
-      refetch()
-    } catch (err) {
-      alert('Failed to delete entry: ' + err.message)
+    if (confirm('Delete this entry?')) {
+      await api.deleteEntry(id);
+      queryClient.invalidateQueries({ queryKey: keys.today });
     }
-  }
+  };
+
+  // Format time
+  const formatTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse-soft text-gray-400">Loading...</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-400">Loading...</div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="p-4">
-        <div className="card p-6 text-center text-red-500">
-          <p>Error: {error.message}</p>
-          <button onClick={() => refetch()} className="btn-primary mt-4 px-4 py-2">
-            Retry
-          </button>
-        </div>
+      <div className="p-4 bg-red-50 text-red-600 rounded-xl">
+        Error loading entries. Please try again.
       </div>
-    )
+    );
   }
 
-  const { entries, totals, date } = data
-  const todayStr = format(new Date(), 'EEEE, MMMM d')
-
-  // Goals from settings
-  const { calories: calorieGoal, protein: proteinGoal, carbs: carbsGoal, fat: fatGoal } = goals
-
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <header className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Today</h1>
-        <p className="text-gray-500 dark:text-gray-400">{todayStr}</p>
-      </header>
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Today</h1>
+        <p className="text-gray-500 dark:text-gray-400">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        </p>
+      </div>
 
-      {/* Calorie Ring */}
-      <section className="px-4 mb-6">
-        <div className="card p-6 flex items-center justify-center flex-col">
-          <ProgressRing
-            value={totals.calories || 0}
-            max={calorieGoal}
-            size={160}
-            strokeWidth={12}
-            color="primary"
-          />
-          <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm">Calories</p>
+      {/* Calorie Display */}
+      <div className="card p-6">
+        <div className="text-center">
+          <div className="text-5xl font-bold text-primary-600 dark:text-primary-400">{totals.calories}</div>
+          <div className="text-gray-500 dark:text-gray-400 mt-1">/ {goals.calories} calories</div>
+          <div className="mt-4">
+            <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-primary-500 to-primary-400 rounded-full transition-all duration-500"
+                style={{ width: `${caloriePercent}%` }}
+              />
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
 
       {/* Macros Grid */}
-      <section className="px-4 mb-6 space-y-3">
-        <MacroCard
-          label="Protein"
-          value={totals.protein || 0}
-          max={proteinGoal}
-          unit="g"
-          color="protein"
-          icon={Droplets}
-        />
-        <MacroCard
-          label="Carbs"
-          value={totals.carbs || 0}
-          max={carbsGoal}
-          unit="g"
-          color="carbs"
-          icon={Wheat}
-        />
-        <MacroCard
-          label="Fat"
-          value={totals.fat || 0}
-          max={fatGoal}
-          unit="g"
-          color="fat"
-          icon={Droplets}
-        />
-      </section>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="card p-4 text-center">
+          <div className="text-2xl font-bold text-primary-600 dark:text-primary-400">{totals.protein}g</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Protein</div>
+          <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-primary-500 rounded-full transition-all duration-300"
+              style={{ width: `${proteinPercent}%` }}
+            />
+          </div>
+        </div>
+        <div className="card p-4 text-center">
+          <div className="text-2xl font-bold text-accent-600 dark:text-accent-400">{totals.carbs}g</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Carbs</div>
+          <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-accent-500 rounded-full transition-all duration-300"
+              style={{ width: `${carbsPercent}%` }}
+            />
+          </div>
+        </div>
+        <div className="card p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totals.fat}g</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Fat</div>
+          <div className="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              style={{ width: `${fatPercent}%` }}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Entries List */}
-      <section className="px-4 pb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-          <Utensils className="w-5 h-5 text-primary-500" />
-          Food Log
-          <span className="text-sm font-normal text-gray-500">
-            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
-          </span>
-        </h2>
-
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Today's Entries</h2>
+        
         {entries.length === 0 ? (
           <div className="card p-8 text-center">
-            <div className="text-6xl mb-4">🍽️</div>
-            <p className="text-gray-500 dark:text-gray-400">No food logged today</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-              Tap the + button to add your first meal
-            </p>
+            <div className="text-4xl mb-3">🍽️</div>
+            <p className="text-gray-500 dark:text-gray-400">No food logged yet today</p>
+            <button 
+              onClick={() => navigate('/add')}
+              className="mt-4 btn-primary px-6 py-2"
+            >
+              Add Your First Meal
+            </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {entries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} onDelete={handleDelete} />
-            ))}
-          </div>
+          entries.map((entry) => (
+            <div key={entry.id} className="card p-4 flex items-start gap-4">
+              {entry.photo ? (
+                <img 
+                  src={entry.photo} 
+                  alt={entry.description}
+                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-2xl">🍽️</span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white truncate">
+                      {entry.description || 'Food entry'}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {entry.calories} cal • {entry.protein}p / {entry.carbs}c / {entry.fat}f
+                    </div>
+                    {entry.confidence && (
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        AI confidence: {Math.round(entry.confidence * 100)}%
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                  {formatTime(entry.createdAt)}
+                </div>
+              </div>
+            </div>
+          ))
         )}
-      </section>
+      </div>
     </div>
-  )
+  );
 }
