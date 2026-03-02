@@ -1,19 +1,18 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, keys } from '../api.js';
+import { goals } from '../lib/storage.js';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { sessionId } = useParams();
   const queryClient = useQueryClient();
-  const [goals, setGoals] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 });
+  const [dailyGoals, setDailyGoals] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 });
   
   // Load goals from storage
   useEffect(() => {
-    const savedGoals = localStorage.getItem('foodlog_goals');
-    if (savedGoals) {
-      setGoals(JSON.parse(savedGoals));
-    }
+    goals.get().then(setDailyGoals);
   }, []);
 
   // Fetch today's entries
@@ -27,10 +26,10 @@ export default function Dashboard() {
   const totals = data?.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
   // Calculate percentages
-  const caloriePercent = Math.min(100, Math.round((totals.calories / goals.calories) * 100));
-  const proteinPercent = Math.min(100, Math.round((totals.protein / goals.protein) * 100));
-  const carbsPercent = Math.min(100, Math.round((totals.carbs / goals.carbs) * 100));
-  const fatPercent = Math.min(100, Math.round((totals.fat / goals.fat) * 100));
+  const caloriePercent = Math.min(100, Math.round((totals.calories / dailyGoals.calories) * 100));
+  const proteinPercent = Math.min(100, Math.round((totals.protein / dailyGoals.protein) * 100));
+  const carbsPercent = Math.min(100, Math.round((totals.carbs / dailyGoals.carbs) * 100));
+  const fatPercent = Math.min(100, Math.round((totals.fat / dailyGoals.fat) * 100));
 
   // Delete entry
   const handleDelete = async (id) => {
@@ -76,7 +75,7 @@ export default function Dashboard() {
       <div className="card p-6">
         <div className="text-center">
           <div className="text-5xl font-bold text-primary-600 dark:text-primary-400">{totals.calories}</div>
-          <div className="text-gray-500 dark:text-gray-400 mt-1">/ {goals.calories} calories</div>
+          <div className="text-gray-500 dark:text-gray-400 mt-1">/ {dailyGoals.calories} calories</div>
           <div className="mt-4">
             <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <div 

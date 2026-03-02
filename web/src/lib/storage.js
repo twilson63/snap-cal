@@ -1,22 +1,72 @@
-// Local Storage Service for FoodLog
-// No backend needed - everything stored in browser
+// Session-based storage service
+// Each session has its own data, accessible via URL or passphrase
 
 const DB_VERSION = 1;
-const DB_NAME = 'foodlog';
-const ENTRIES_STORE = 'entries';
+const DB_NAME = 'foodlog-v2';
 
-// Open IndexedDB for photos (localStorage can't handle large data)
-function openDB() {
+// Get current session from URL or localStorage
+export function getSession() {
+  // Check URL first: /s/:sessionId
+  const match = window.location.pathname.match(/^\/s\/([^/]+)/);
+  if (match) {
+    const sessionId = match[1];
+    localStorage.setItem('foodlog_session', sessionId);
+    return sessionId;
+  }
+  
+  // Check localStorage
+  const stored = localStorage.getItem('foodlog_session');
+  if (stored) {
+    return stored;
+  }
+  
+  // Generate new session
+  const newSession = generateSessionId();
+  localStorage.setItem('foodlog_session', newSession);
+  return newSession;
+}
+
+// Generate a memorable session ID
+function generateSessionId() {
+  const adjectives = ['happy', 'clever', 'swift', 'calm', 'bright', 'eager', 'gentle', 'honest'];
+  const nouns = ['panda', 'tiger', 'eagle', 'dolphin', 'fox', 'owl', 'bear', 'wolf'];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  const num = Math.floor(Math.random() * 100);
+  return `${adj}-${noun}-${num}`;
+}
+
+// Create a custom session ID from passphrase
+export function createSession(passphrase) {
+  // Convert passphrase to URL-safe ID
+  const sessionId = passphrase
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 50);
+  
+  localStorage.setItem('foodlog_session', sessionId);
+  return sessionId;
+}
+
+// Open IndexedDB (session-scoped)
+async function openDB() {
+  const sessionId = getSession();
+  
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Use database per session to avoid key collisions
+    const request = indexedDB.open(`${DB_NAME}-${sessionId}`, DB_VERSION);
     
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
     
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains(ENTRIES_STORE)) {
-        db.createObjectStore(ENTRIES_STORE, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('entries')) {
+        db.createObjectStore('entries', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', { keyPath: 'key' });
       }
     };
   });
@@ -34,14 +84,13 @@ function getTodayStr() {
 
 // Entries API
 export const entries = {
-  // Get all entries for today
   async getToday() {
     const db = await openDB();
     const today = getTodayStr();
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readonly');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readonly');
+      const store = transaction.objectStore('entries');
       const request = store.getAll();
       
       request.onsuccess = () => {
@@ -59,20 +108,18 @@ export const entries = {
     });
   },
   
-  // Get recent days stats
   async getRecentStats(days = 7) {
     const db = await openDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readonly');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readonly');
+      const store = transaction.objectStore('entries');
       const request = store.getAll();
       
       request.onsuccess = () => {
         const entries = request.result;
         const daysMap = {};
         
-        // Group by date
         entries.forEach(e => {
           if (!daysMap[e.date]) {
             daysMap[e.date] = { date: e.date, calories: 0, entries: 0 };
@@ -81,7 +128,6 @@ export const entries = {
           daysMap[e.date].entries += 1;
         });
         
-        // Get last N days
         const result = Object.values(daysMap)
           .sort((a, b) => b.date.localeCompare(a.date))
           .slice(0, days);
@@ -92,7 +138,6 @@ export const entries = {
     });
   },
   
-  // Create entry
   async create(data) {
     const db = await openDB();
     const entry = {
@@ -103,8 +148,8 @@ export const entries = {
     };
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readwrite');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readwrite');
+      const store = transaction.objectStore('entries');
       const request = store.add(entry);
       
       request.onsuccess = () => resolve(entry);
@@ -112,13 +157,12 @@ export const entries = {
     });
   },
   
-  // Update entry
   async update(id, data) {
     const db = await openDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readwrite');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readwrite');
+      const store = transaction.objectStore('entries');
       const getRequest = store.get(id);
       
       getRequest.onsuccess = () => {
@@ -131,13 +175,12 @@ export const entries = {
     });
   },
   
-  // Delete entry
   async delete(id) {
     const db = await openDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readwrite');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readwrite');
+      const store = transaction.objectStore('entries');
       const request = store.delete(id);
       
       request.onsuccess = () => resolve({ success: true });
@@ -145,13 +188,12 @@ export const entries = {
     });
   },
   
-  // Get entry by ID
   async get(id) {
     const db = await openDB();
     
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(ENTRIES_STORE, 'readonly');
-      const store = transaction.objectStore(ENTRIES_STORE);
+      const transaction = db.transaction('entries', 'readonly');
+      const store = transaction.objectStore('entries');
       const request = store.get(id);
       
       request.onsuccess = () => resolve(request.result);
@@ -160,34 +202,91 @@ export const entries = {
   },
 };
 
-// Goals API (stored in localStorage for simplicity)
-export const goals = {
-  get() {
-    const stored = localStorage.getItem('foodlog_goals');
-    return stored ? JSON.parse(stored) : {
-      calories: 2000,
-      protein: 150,
-      carbs: 200,
-      fat: 65,
-    };
+// Settings API (per-session)
+export const settings = {
+  async get(key) {
+    const db = await openDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('settings', 'readonly');
+      const store = transaction.objectStore('settings');
+      const request = store.get(key);
+      
+      request.onsuccess = () => resolve(request.result?.value);
+      request.onerror = () => reject(request.error);
+    });
   },
   
-  set(goals) {
-    localStorage.setItem('foodlog_goals', JSON.stringify(goals));
-    return goals;
+  async set(key, value) {
+    const db = await openDB();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction('settings', 'readwrite');
+      const store = transaction.objectStore('settings');
+      const request = store.put({ key, value });
+      
+      request.onsuccess = () => resolve(value);
+      request.onerror = () => reject(request.error);
+    });
+  },
+};
+
+// Goals API
+export const goals = {
+  async get() {
+    const defaults = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+    const saved = await settings.get('goals');
+    return saved || defaults;
+  },
+  
+  async set(goals) {
+    return settings.set('goals', goals);
   },
 };
 
 // Theme API
 export const theme = {
-  get() {
-    return localStorage.getItem('foodlog_theme') || 'system';
+  async get() {
+    return settings.get('theme') || 'system';
   },
   
-  set(theme) {
-    localStorage.setItem('foodlog_theme', theme);
-    return theme;
+  async set(theme) {
+    return settings.set('theme', theme);
   },
 };
 
-export default { entries, goals, theme };
+// API key API
+export const apiKey = {
+  async get() {
+    return settings.get('openrouter_key');
+  },
+  
+  async set(key) {
+    return settings.set('openrouter_key', key);
+  },
+};
+
+// Session URL helpers
+export function getSessionUrl() {
+  const sessionId = getSession();
+  return `${window.location.origin}/s/${sessionId}`;
+}
+
+export function navigateToSession(sessionId) {
+  window.history.pushState({}, '', `/s/${sessionId}`);
+  localStorage.setItem('foodlog_session', sessionId);
+  // Reload to reinitialize IndexedDB for new session
+  window.location.reload();
+}
+
+export default { 
+  getSession, 
+  createSession, 
+  getSessionUrl, 
+  navigateToSession,
+  entries, 
+  goals, 
+  theme,
+  apiKey,
+  settings 
+};

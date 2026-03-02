@@ -2,24 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { api } from '@/services/api'
-
-const DEFAULT_GOALS = {
-  calories: 2000,
-  protein: 150,
-  carbs: 200,
-  fat: 65,
-}
+import { useGoals } from '@/hooks/useGoals'
 
 export default function SettingsScreen() {
   const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking')
   const [apiInfo, setApiInfo] = useState<{ database: string; vision: { configured: boolean; model: string } } | null>(null)
-  const [goals, setGoals] = useState(DEFAULT_GOALS)
   const [editingGoals, setEditingGoals] = useState(false)
-  const [tempGoals, setTempGoals] = useState(DEFAULT_GOALS)
+  const [tempGoals, setTempGoals] = useState({ calories: 2000, protein: 150, carbs: 200, fat: 65 })
+
+  const { goals, updateGoals, resetGoals } = useGoals()
 
   useEffect(() => {
     checkApiHealth()
-    loadGoals()
   }, [])
 
   const checkApiHealth = async () => {
@@ -37,41 +31,19 @@ export default function SettingsScreen() {
     }
   }
 
-  const loadGoals = () => {
-    // Goals are stored locally - in a real app, you'd use AsyncStorage
-    // For now, we'll use default goals
-    setGoals(DEFAULT_GOALS)
-  }
-
-  const saveGoals = () => {
-    setGoals(tempGoals)
-    setEditingGoals(false)
-    // In a real app, save to AsyncStorage here
-    Alert.alert('Goals Saved', 'Your daily goals have been updated.')
-  }
-
-  const resetGoals = () => {
-    Alert.alert(
-      'Reset Goals',
-      'Reset all goals to default values?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            setTempGoals(DEFAULT_GOALS)
-            setGoals(DEFAULT_GOALS)
-            setEditingGoals(false)
-          },
-        },
-      ]
-    )
-  }
-
   const openEditGoals = () => {
     setTempGoals(goals)
     setEditingGoals(true)
+  }
+
+  const saveGoals = async () => {
+    try {
+      await updateGoals(tempGoals)
+      setEditingGoals(false)
+      Alert.alert('Goals Saved', 'Your daily goals have been updated.')
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save goals. Please try again.')
+    }
   }
 
   const GoalInput = ({ label, value, unit, onChange }: { label: string; value: number; unit: string; onChange: (v: number) => void }) => (

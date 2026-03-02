@@ -1,14 +1,13 @@
-// Local storage API - no backend needed!
-import { entries, goals, theme } from './lib/storage.js';
+// Session-based API - no backend needed!
+import { entries, goals, apiKey } from './lib/storage.js';
 
 // Vision API (calls OpenRouter directly from browser)
 const VISION_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 async function analyzeWithVision(photoBase64) {
-  const apiKey = localStorage.getItem('foodlog_openrouter_key');
+  const key = await apiKey.get();
   
-  if (!apiKey) {
-    // Return mock data if no API key
+  if (!key) {
     return getMockEstimate();
   }
   
@@ -17,7 +16,7 @@ async function analyzeWithVision(photoBase64) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${key}`,
         'HTTP-Referer': window.location.origin,
         'X-Title': 'FoodLog',
       },
@@ -57,7 +56,6 @@ Respond as JSON only:
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
     
-    // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
@@ -81,7 +79,7 @@ function getMockEstimate() {
   return foods[Math.floor(Math.random() * foods.length)];
 }
 
-// API object matching previous interface
+// API object matching previous interface (but async)
 export const api = {
   // Entries
   getToday: () => entries.getToday(),
@@ -98,12 +96,8 @@ export const api = {
   getGoals: () => goals.get(),
   setGoals: (g) => goals.set(g),
   
-  // Theme
-  getTheme: () => theme.get(),
-  setTheme: (t) => theme.set(t),
-  
-  // Health check (no-op for local storage)
-  health: () => Promise.resolve({ status: 'healthy', storage: 'indexeddb' }),
+  // Health check
+  health: () => Promise.resolve({ status: 'healthy', storage: 'indexeddb-session' }),
 };
 
 // React Query keys

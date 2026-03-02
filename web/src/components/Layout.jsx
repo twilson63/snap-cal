@@ -1,8 +1,11 @@
-import { Outlet, NavLink } from 'react-router-dom'
-import { Home, PlusCircle, Clock, Settings } from 'lucide-react'
+import { Outlet, NavLink, useParams } from 'react-router-dom'
+import { Home, PlusCircle, Clock, BarChart3, Settings } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 export default function Layout() {
+  const { sessionId } = useParams()
+  const basePath = sessionId ? `/s/${sessionId}` : ''
+  
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     if (saved !== null) return JSON.parse(saved)
@@ -40,7 +43,7 @@ export default function Layout() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 safe-bottom z-50">
         <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
           <NavLink
-            to="/"
+            to={`${basePath}/`}
             className={({ isActive }) =>
               isActive ? 'nav-item-active' : 'nav-item'
             }
@@ -50,7 +53,17 @@ export default function Layout() {
           </NavLink>
 
           <NavLink
-            to="/add"
+            to={`${basePath}/history`}
+            className={({ isActive }) =>
+              isActive ? 'nav-item-active' : 'nav-item'
+            }
+          >
+            <Clock className="w-6 h-6" />
+            <span className="text-xs font-medium">History</span>
+          </NavLink>
+
+          <NavLink
+            to={`${basePath}/add`}
             className={({ isActive }) =>
               isActive ? 'nav-item-active' : 'nav-item'
             }
@@ -62,17 +75,17 @@ export default function Layout() {
           </NavLink>
 
           <NavLink
-            to="/history"
+            to={`${basePath}/stats`}
             className={({ isActive }) =>
               isActive ? 'nav-item-active' : 'nav-item'
             }
           >
-            <Clock className="w-6 h-6" />
-            <span className="text-xs font-medium">History</span>
+            <BarChart3 className="w-6 h-6" />
+            <span className="text-xs font-medium">Stats</span>
           </NavLink>
 
           <NavLink
-            to="/settings"
+            to={`${basePath}/settings`}
             className={({ isActive }) =>
               isActive ? 'nav-item-active' : 'nav-item'
             }
@@ -84,4 +97,3 @@ export default function Layout() {
       </nav>
     </div>
   )
-}

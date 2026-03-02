@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, keys } from '../api.js';
 import { Camera, Upload, X, Loader } from 'lucide-react';
 
 export default function AddFood() {
   const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const basePath = sessionId ? `/s/${sessionId}` : '';
   const queryClient = useQueryClient();
   
   const [step, setStep] = useState('select'); // select, photo, edit, success

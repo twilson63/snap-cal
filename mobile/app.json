@@ -56,7 +56,8 @@
         {
           "photosPermission": "Allow FoodLog to access your photo library to select food photos for tracking."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true
