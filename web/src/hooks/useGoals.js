@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { goals as goalsApi } from '../lib/storage.js'
 
 const DEFAULT_GOALS = {
   calories: 2000,
@@ -7,24 +8,30 @@ const DEFAULT_GOALS = {
   fat: 65,
 }
 
-const STORAGE_KEY = 'snapcal_goals'
-
 export function useGoals() {
-  const [goals, setGoalsState] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        return { ...DEFAULT_GOALS, ...JSON.parse(saved) }
-      }
-    } catch (e) {
-      console.error('Failed to load goals:', e)
-    }
-    return DEFAULT_GOALS
-  })
+  const [goals, setGoalsState] = useState(DEFAULT_GOALS)
+  const [loaded, setLoaded] = useState(false)
 
+  // Load goals from encrypted IndexedDB on mount
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(goals))
-  }, [goals])
+    goalsApi.get().then(savedGoals => {
+      if (savedGoals) {
+        setGoalsState({ ...DEFAULT_GOALS, ...savedGoals })
+      }
+      setLoaded(true)
+    }).catch(e => {
+      console.error('Failed to load goals:', e)
+      setLoaded(true)
+    })
+  }, [])
+
+  // Save goals to encrypted storage when changed
+  useEffect(() => {
+    if (!loaded) return
+    goalsApi.set(goals).catch(e => {
+      console.error('Failed to save goals:', e)
+    })
+  }, [goals, loaded])
 
   const setGoals = (newGoals) => {
     setGoalsState(prev => ({ ...prev, ...newGoals }))
@@ -34,7 +41,7 @@ export function useGoals() {
     setGoalsState(DEFAULT_GOALS)
   }
 
-  return { goals, setGoals, resetGoals, defaults: DEFAULT_GOALS }
+  return { goals, setGoals, resetGoals, defaults: DEFAULT_GOALS, loaded }
 }
 
 export function useLocalStorage(key, defaultValue) {

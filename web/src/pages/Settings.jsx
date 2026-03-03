@@ -15,9 +15,9 @@ export default function Settings() {
   useEffect(() => {
     // Load settings from IndexedDB
     const loadSettings = async () => {
-      const { settings } = await import('../lib/storage.js');
+      const { settings, apiKey: apiKeyStorage } = await import('../lib/storage.js');
       const savedGoals = await settings.get('goals');
-      const savedKey = await settings.get('openrouter_key');
+      const savedKey = await apiKeyStorage.get();
       if (savedGoals) setGoals(savedGoals);
       if (savedKey) setApiKey(savedKey);
     };
@@ -28,8 +28,10 @@ export default function Settings() {
   }, []);
 
   const handleSave = async () => {
-    const { settings } = await import('../lib/storage.js');
-    await settings.set('openrouter_key', apiKey);
+    const { settings, apiKey: apiKeyStorage } = await import('../lib/storage.js');
+    if (apiKey) {
+      await apiKeyStorage.set(apiKey);
+    }
     await settings.set('goals', goals);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -225,7 +227,11 @@ export default function Settings() {
             </div>
             <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700">
               <span className="text-sm text-gray-500 dark:text-gray-400">Storage</span>
-              <span className="text-sm text-gray-900 dark:text-white">IndexedDB (local)</span>
+              <span className="text-sm text-gray-900 dark:text-white">IndexedDB (encrypted)</span>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Encryption</span>
+              <span className="text-sm text-green-600 dark:text-green-400">AES-256-GCM ✓</span>
             </div>
             <div className="flex items-center justify-between py-2 border-t border-gray-100 dark:border-gray-700">
               <span className="text-sm text-gray-500 dark:text-gray-400">AI Model</span>
