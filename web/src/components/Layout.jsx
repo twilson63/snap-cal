@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 export default function Layout() {
   const { sessionId } = useParams()
   const basePath = sessionId ? `/s/${sessionId}` : ''
-  
+
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode')
     if (saved !== null) return JSON.parse(saved)
@@ -34,64 +34,66 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      {/* Main Content */}
-      <main className="flex-1 pb-20 overflow-auto">
-        <Outlet />
+      {/* Main Content - pb-28 ensures content clears the floating pill nav */}
+      <main className="flex-1 pb-28 overflow-auto">
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <Outlet />
+        </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-gray-200 dark:bg-gray-800/80 dark:border-gray-700 safe-bottom z-50">
-        <div className="max-w-lg mx-auto flex items-center justify-around px-2 py-2">
+      {/* Bottom Navigation - Floating pill-style tab bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="max-w-lg mx-auto bg-white/90 backdrop-blur-xl dark:bg-gray-800/90 border border-gray-200/60 dark:border-gray-700/60 rounded-[2rem] shadow-lg shadow-black/5 dark:shadow-black/20 flex items-center justify-around px-1 py-1">
           <NavLink
             to={`${basePath}/`}
+            end
             className={({ isActive }) =>
-              isActive ? 'nav-item-active' : 'nav-item'
+              `nav-pill-item ${isActive ? 'nav-pill-active' : ''}`
             }
           >
-            <Home className="w-6 h-6" />
-            <span className="text-xs font-medium">Today</span>
+            <Home className="w-[18px] h-[18px]" />
+            <span className="nav-pill-label">Today</span>
           </NavLink>
 
           <NavLink
             to={`${basePath}/history`}
             className={({ isActive }) =>
-              isActive ? 'nav-item-active' : 'nav-item'
+              `nav-pill-item ${isActive ? 'nav-pill-active' : ''}`
             }
           >
-            <Clock className="w-6 h-6" />
-            <span className="text-xs font-medium">History</span>
+            <Clock className="w-[18px] h-[18px]" />
+            <span className="nav-pill-label">History</span>
           </NavLink>
 
           <NavLink
             to={`${basePath}/add`}
             className={({ isActive }) =>
-              isActive ? 'nav-item-active' : 'nav-item'
+              `nav-pill-item nav-pill-add ${isActive ? 'nav-pill-active' : ''}`
             }
           >
-            <div className="w-14 h-14 -mt-4 bg-primary-500 rounded-full flex items-center justify-center shadow-lg shadow-primary-500/30">
-              <PlusCircle className="w-7 h-7 text-white" />
+            <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center shadow-md shadow-primary-500/30">
+              <PlusCircle className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xs font-medium mt-1">Add</span>
           </NavLink>
 
           <NavLink
             to={`${basePath}/stats`}
             className={({ isActive }) =>
-              isActive ? 'nav-item-active' : 'nav-item'
+              `nav-pill-item ${isActive ? 'nav-pill-active' : ''}`
             }
           >
-            <BarChart3 className="w-6 h-6" />
-            <span className="text-xs font-medium">Stats</span>
+            <BarChart3 className="w-[18px] h-[18px]" />
+            <span className="nav-pill-label">Stats</span>
           </NavLink>
 
           <NavLink
             to={`${basePath}/settings`}
             className={({ isActive }) =>
-              isActive ? 'nav-item-active' : 'nav-item'
+              `nav-pill-item ${isActive ? 'nav-pill-active' : ''}`
             }
           >
-            <Settings className="w-6 h-6" />
-            <span className="text-xs font-medium">Settings</span>
+            <Settings className="w-[18px] h-[18px]" />
+            <span className="nav-pill-label">Settings</span>
           </NavLink>
         </div>
       </nav>

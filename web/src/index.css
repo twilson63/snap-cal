@@ -59,9 +59,26 @@
   .nav-item {
     @apply flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all duration-200 text-gray-400;
   }
-  
+
   .nav-item-active {
     @apply nav-item bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400;
+  }
+
+  /* Pill-style floating bottom nav */
+  .nav-pill-item {
+    @apply flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-[1.625rem] transition-all duration-200 text-gray-400 dark:text-gray-500;
+  }
+
+  .nav-pill-active {
+    @apply bg-primary-500 text-white dark:bg-primary-500 dark:text-white;
+  }
+
+  .nav-pill-add {
+    @apply py-1.5;
+  }
+
+  .nav-pill-label {
+    @apply text-[10px] font-medium uppercase tracking-wide;
   }
 }
 
